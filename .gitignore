@@ -1,0 +1,28 @@
+# Claves y configuración personal (usa .env.example como plantilla)
+.env
+
+# Dependencias (se instalan con npm install)
+node_modules/
+
+# Datos de los LIVEs: bases de datos con la gente real, copias de respaldo y caché de voz
+datos/
+*.db
+*.db-wal
+*.db-shm
+
+# Registros de batidas: nombres y comentarios reales del público
+registros/
+registros-simulador/
+
+# Pruebas sueltas
+_*.mjs
+
+# Música de Pixabay: su licencia no permite redistribuir los archivos sueltos (siguen en tu PC y el LIVE las usa igual).
+# La de Kevin MacLeod (CC BY 4.0, ver CREDITOS.txt) sí se puede compartir dando crédito
+public/musica/*-[0-9][0-9][0-9][0-9][0-9]*.mp3
+
+# Claves propias de cada cliente
+clientes/*/.env
+# Videos del avatar (pesados): se copian a mano a cada PC
+clientes/*/publico/videos/*.mp4
+clientes/*/publico/videos/*.webm

@@ -1,0 +1,21 @@
+{
+  "name": "avatar-asesor-live",
+  "version": "0.1.0",
+  "description": "Avatar con IA en video para TikTok LIVE: responde el chat con voz, por cliente (clientes/<id>)",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "simular": "node src/index.js --simular",
+    "ventana": "start \"\" msedge --user-data-dir=\"%TEMP%\\avatar-ventana\" --no-first-run --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling --disable-features=CalculateNativeWinOcclusion --autoplay-policy=no-user-gesture-required --app=http://localhost:3000/?autoplay --window-size=540,990",
+    "momentos": "node src/herramientas/mejores-momentos.js"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": ">=0.39.0",
+    "dotenv": "^16.4.5",
+    "tiktok-live-connector": "^2.5.0",
+    "ws": "^8.18.0"
+  }
+}

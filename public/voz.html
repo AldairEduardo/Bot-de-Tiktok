@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bot de voz del LIVE</title>
+<style>
+  /* Página de solo voz: el dueño la deja abierta en su laptop; lee en voz alta las respuestas a las preguntas del chat */
+  :root { --fondo: #0f1420; --panel: #1a2133; --texto: #eef2f8; --suave: #9aa6bd; --acento: #3b82f6; --ok: #22c55e; --alerta: #f59e0b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--fondo); color: var(--texto); font: 16px/1.5 'Segoe UI', system-ui, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 16px; }
+  h1 { margin: 0; font-size: 24px; }
+  .estado { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; background: var(--panel); }
+  .punto { width: 12px; height: 12px; border-radius: 50%; background: var(--alerta); flex: none; }
+  .estado.ok .punto { background: var(--ok); }
+  .estado.hablando .punto { background: var(--acento); animation: latir .8s ease-in-out infinite; }
+  @keyframes latir { 50% { transform: scale(1.5); } }
+  button { font: 600 18px 'Segoe UI', system-ui, sans-serif; padding: 16px 20px; border: 0; border-radius: 12px; background: var(--acento); color: #fff; cursor: pointer; }
+  button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  button[hidden] { display: none; }
+  .nota { color: var(--suave); font-size: 14px; margin: 0; }
+  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  li { padding: 12px 14px; border-radius: 12px; background: var(--panel); }
+  li .q { color: var(--suave); font-size: 14px; overflow-wrap: anywhere; }
+  li .q b { color: var(--texto); }
+  li .r { margin-top: 4px; font-weight: 600; }
+  .vacio { color: var(--suave); }
+  html.invisible, html.invisible body { background: transparent; }
+  html.invisible main { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🔊 Bot de voz del LIVE</h1>
+  <div class="estado" id="estado"><span class="punto"></span><span id="estado-texto">Conectando con el programa…</span></div>
+  <button id="activar">Activar la voz</button>
+  <p class="nota">Deja esta página abierta (puedes taparla, pero no la cierres). La voz sale por los parlantes de esta PC: en TikTok LIVE Studio activa el audio del sistema / escritorio para que el público la escuche.</p>
+  <h2 style="margin:8px 0 0;font-size:18px">Últimas respuestas</h2>
+  <ol id="lista"><li class="vacio">Todavía nadie ha preguntado.</li></ol>
+</main>
+<script>
+  const estado = document.getElementById('estado'), estadoTexto = document.getElementById('estado-texto');
+  const boton = document.getElementById('activar'), lista = document.getElementById('lista');
+  // Desde el link del cliente (/v/<clave>) la voz arranca sola: en TikTok LIVE Studio no se puede hacer clic en la fuente
+  // y es invisible (la fuente también se ve en el video). Con ?panel se ven las respuestas sin que suene (para su navegador)
+  const desdeLink = location.pathname.startsWith('/v/');
+  const params = new URLSearchParams(location.search);
+  if (desdeLink && !params.has('panel')) document.documentElement.classList.add('invisible');
+  let vozActiva = (desdeLink && !params.has('panel')) || params.has('autoplay');
+  const ponerEstado = (clase, texto) => { estado.className = 'estado ' + clase; estadoTexto.textContent = texto; };
+  boton.hidden = vozActiva;
+  boton.onclick = () => {
+    vozActiva = true; boton.hidden = true;
+    new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=').play().catch(() => {}); // desbloquea el sonido
+    if (ws?.readyState === 1) ponerEstado('ok', 'Listo: la voz responderá las preguntas del chat');
+  };
+  function pedirToque() {
+    document.documentElement.classList.remove('invisible');
+    boton.textContent = 'Toca aquí para activar la voz';
+    boton.hidden = false; vozActiva = false;
+    ponerEstado('', 'El navegador bloqueó el sonido. Toca el botón azul para activar la voz');
+  }
+
+  function anotar(m) {
+    lista.querySelector('.vacio')?.remove();
+    const li = document.createElement('li');
+    const q = document.createElement('div'); q.className = 'q';
+    const b = document.createElement('b'); b.textContent = '@' + (m.usuario ?? '');
+    q.append(b, ' preguntó: ' + (m.entrada ?? ''));
+    const r = document.createElement('div'); r.className = 'r'; r.textContent = m.respuesta ?? '';
+    li.append(q, r);
+    lista.prepend(li);
+    while (lista.children.length > 15) lista.lastChild.remove();
+  }
+
+  // Habla de a una frase; avisa al programa cuando terminó (así no se pisan las respuestas)
+  let fraseActual = null, audioActual = null, seguro = null;
+  function terminar(id, sono) {
+    if (id !== fraseActual) return;
+    fraseActual = null; clearTimeout(seguro);
+    ponerEstado('ok', 'Listo: la voz responderá las preguntas del chat');
+    if (sono && ws?.readyState === 1) ws.send(JSON.stringify({ tipo: 'fin', id }));
+  }
+  function hablar(m) {
+    anotar(m);
+    if (!vozActiva) return; // sin activar, solo se anota (el programa sigue solo pasado un rato)
+    if (audioActual) { audioActual.onended = audioActual.onerror = null; audioActual.pause(); }
+    speechSynthesis.cancel();
+    const id = m.id ?? String(Date.now()); fraseActual = id;
+    const texto = String(m.respuesta ?? '');
+    ponerEstado('hablando', 'Hablando…');
+    clearTimeout(seguro); seguro = setTimeout(() => terminar(id, false), Math.min(30000, 4000 + texto.length * 110));
+    if (m.audio) {
+      const a = new Audio(`data:${m.audio.startsWith('UklGR') ? 'audio/wav' : 'audio/mpeg'};base64,${m.audio}`);
+      audioActual = a;
+      a.onended = () => terminar(id, true);
+      a.onerror = () => terminar(id, false);
+      a.play().catch((e) => {
+        // El navegador bloqueó el sonido (nadie tocó la página): se deja de ser invisible y se pide un toque
+        if (e?.name === 'NotAllowedError') pedirToque();
+        terminar(id, false);
+      });
+    } else if ('speechSynthesis' in window) {
+      const u = new SpeechSynthesisUtterance(texto);
+      u.lang = 'es-419'; u.rate = 1.05;
+      u.onend = () => terminar(id, true);
+      u.onerror = (e) => { if (e.error !== 'interrupted' && e.error !== 'canceled') terminar(id, false); };
+      speechSynthesis.speak(u);
+    }
+  }
+
+  let ws, version = null;
+  function conectar() {
+    ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${desdeLink ? location.pathname : ''}`);
+    ws.onopen = () => ponerEstado(vozActiva ? 'ok' : '', vozActiva ? 'Listo: la voz responderá las preguntas del chat' : 'Conectado. Toca "Activar la voz" para empezar');
+    ws.onmessage = (e) => {
+      let m; try { m = JSON.parse(e.data); } catch { return; }
+      if (m.tipo === 'escena') { if (version && m.version && m.version !== version) return location.reload(); version = m.version; }
+      if (m.tipo === 'leyendo' && vozActiva && !fraseActual) ponerEstado('ok', `Leyendo la pregunta de @${m.usuario}…`);
+      if (m.tipo === 'hablar') hablar(m);
+    };
+    ws.onclose = () => { ponerEstado('', 'Sin conexión con el programa. ¿Está abierto? Reintentando…'); setTimeout(conectar, 2000); };
+    ws.onerror = () => {};
+  }
+  conectar();
+</script>
+</body>
+</html>

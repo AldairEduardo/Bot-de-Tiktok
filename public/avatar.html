@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avatar asesor · Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Lienzo vertical de 1080x1920 que se escala a la ventana (igual que el overlay de Chabela).
+     Zonas que tapa TikTok: encabezado y 0-182, chat x 0-800 y 1248-1806, botones x 918-1080 y 883-1805. */
+  :root { --principal: #1877F2; --acento: #FFD84D; --fondo: #0B1220; --texto: #FFFFFF; }
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  #escena {
+    position: absolute; left: 50%; top: 50%; width: 1080px; height: 1920px; transform-origin: center; overflow: hidden;
+    font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; color: var(--texto); background: var(--fondo);
+  }
+
+  /* Avatar: dos videos que se turnan con un fundido para cambiar de estado sin cortes */
+  #avatar video { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; opacity: 0; transition: opacity .35s ease; }
+  #avatar video.activo { opacity: 1; }
+  /* Mientras no haya videos: un avatar de reemplazo animado (estudio con luz y una silueta que "habla") */
+  #reemplazo { position: absolute; inset: 0; display: none;
+    background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--principal) 55%, transparent), transparent 60%),
+                radial-gradient(ellipse at 80% 90%, color-mix(in srgb, var(--acento) 25%, transparent), transparent 55%), var(--fondo); }
+  #escena.sin-video #reemplazo { display: block; }
+  #reemplazo .cara { position: absolute; left: 540px; top: 640px; width: 400px; height: 400px; margin: -200px 0 0 -200px; border-radius: 50%;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--principal) 80%, #fff), var(--principal)); box-shadow: 0 0 120px color-mix(in srgb, var(--principal) 70%, transparent);
+    display: grid; place-items: center; font-size: 190px; font-weight: 800; color: #fff; animation: respira 4s ease-in-out infinite; }
+  @keyframes respira { 50% { transform: scale(1.03); } }
+  #reemplazo .ondas { position: absolute; left: 540px; top: 735px; transform: translateX(-50%); display: flex; gap: 12px; align-items: flex-end; height: 90px; opacity: .25; transition: opacity .3s; }
+  #reemplazo .ondas i { width: 16px; height: 20px; border-radius: 8px; background: var(--acento); }
+  #escena.hablando #reemplazo .ondas { opacity: 1; }
+  #escena.hablando #reemplazo .ondas i { animation: onda .5s ease-in-out infinite alternate; }
+  #reemplazo .ondas i:nth-child(2n) { animation-delay: -.2s; } #reemplazo .ondas i:nth-child(3n) { animation-delay: -.35s; }
+  @keyframes onda { from { height: 18px; } to { height: 86px; } }
+
+  /* Arriba: marca y la etiqueta obligatoria de IA */
+  #marca { position: absolute; left: 40px; right: 40px; top: 196px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+  #marca .nombre { font-size: 40px; font-weight: 800; text-shadow: 0 3px 12px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #marca .ia { flex: none; font-size: 26px; font-weight: 700; padding: 8px 18px; border-radius: 30px; background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.35); }
+  /* Llamado a la acción que va rotando */
+  #cta { position: absolute; left: 40px; right: 40px; top: 272px; padding: 14px 26px; border-radius: 18px; text-align: center;
+    background: color-mix(in srgb, var(--principal) 88%, transparent); font-size: 30px; font-weight: 700; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    transition: opacity .4s; }
+  #cta.cambiando { opacity: 0; }
+  #cta b { color: var(--acento); }
+
+  /* Subtítulos: lo que preguntaron y lo que responde (encima del chat de TikTok) */
+  #subtitulo { position: absolute; left: 40px; right: 40px; top: 940px; padding: 24px 32px 28px; border-radius: 26px;
+    background: rgba(8,12,24,.82); border-left: 10px solid var(--acento); box-shadow: 0 12px 40px rgba(0,0,0,.45);
+    opacity: 0; transform: translateY(16px); transition: opacity .25s, transform .25s; }
+  #subtitulo.visible { opacity: 1; transform: none; }
+  #subtitulo .quien { font-size: 28px; font-weight: 700; color: var(--acento); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #subtitulo .quien span { color: rgba(255,255,255,.75); font-weight: 500; }
+  #subtitulo .texto { margin-top: 6px; font-size: 44px; font-weight: 700; line-height: 1.2;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* "Leyendo a @...": apenas empieza a pensar la respuesta */
+  #leyendo { position: absolute; left: 540px; top: 860px; transform: translateX(-50%) translateY(10px); white-space: nowrap; max-width: 900px; overflow: hidden; text-overflow: ellipsis;
+    padding: 10px 26px; border-radius: 40px; background: rgba(8,12,24,.85); border: 3px solid var(--acento); font-size: 30px; font-weight: 700; opacity: 0; transition: opacity .2s, transform .25s; }
+  #leyendo.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #leyendo b { color: var(--acento); }
+  #leyendo .puntos span { display: inline-block; animation: puntito 1s ease-in-out infinite; }
+  #leyendo .puntos span:nth-child(2) { animation-delay: .15s; } #leyendo .puntos span:nth-child(3) { animation-delay: .3s; }
+  @keyframes puntito { 0%, 60%, 100% { transform: translateY(0); opacity: .4 } 30% { transform: translateY(-8px); opacity: 1 } }
+
+  /* Avisos cortos: alguien entró, siguió, compartió o mandó un regalo */
+  #aviso { position: absolute; left: 540px; top: 370px; transform: translateX(-50%) scale(.8); max-width: 960px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 12px 30px; border-radius: 40px; background: var(--acento); color: #111; font-size: 34px; font-weight: 800; opacity: 0; transition: opacity .25s, transform .3s cubic-bezier(.3,1.6,.5,1); }
+  #aviso.visible { opacity: 1; transform: translateX(-50%) scale(1); }
+
+  /* Ranking de participación */
+  #ranking { position: absolute; left: 50%; top: 430px; width: 760px; margin-left: -380px; padding: 26px 34px; border-radius: 26px;
+    background: rgba(8,12,24,.9); border: 3px solid var(--acento); opacity: 0; transform: scale(.9); transition: opacity .3s, transform .3s; }
+  #ranking.visible { opacity: 1; transform: none; }
+  #ranking h3 { margin: 0 0 12px; text-align: center; font-size: 40px; color: var(--acento); }
+  #ranking ol { margin: 0; padding: 0; list-style: none; }
+  #ranking li { display: flex; justify-content: space-between; gap: 20px; padding: 8px 4px; font-size: 34px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,.12); }
+  #ranking li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Sin permiso de audio (navegador normal): un clic para activarlo */
+  #activar { position: fixed; inset: 0; display: none; place-items: center; background: rgba(0,0,0,.6); z-index: 99; cursor: pointer;
+    font: 700 28px 'Poppins', system-ui, sans-serif; color: #fff; }
+  #activar.visible { display: grid; }
+  @media (prefers-reduced-motion: reduce) { #escena *, #escena { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="escena" class="sin-video">
+  <div id="reemplazo"><div class="cara"></div><div class="ondas"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+  <div id="avatar"><video muted playsinline loop preload="auto"></video><video muted playsinline loop preload="auto"></video></div>
+  <div id="marca"><div class="nombre"></div><div class="ia">✨ Asistente virtual con IA</div></div>
+  <div id="cta"></div>
+  <div id="aviso" aria-live="polite"></div>
+  <div id="ranking" aria-live="polite"><h3>🏆 Más participativos</h3><ol></ol></div>
+  <div id="leyendo" aria-live="polite"></div>
+  <div id="subtitulo" aria-live="polite"><div class="quien"></div><div class="texto"></div></div>
+</div>
+<div id="activar">🔊 Toca para activar el sonido</div>
+<script>
+  const escena = document.getElementById('escena');
+  function ajustar() { escena.style.transform = `translate(-50%, -50%) scale(${Math.min(innerWidth / 1080, innerHeight / 1920)})`; }
+  addEventListener('resize', ajustar); ajustar();
+  const $ = (s) => document.querySelector(s);
+
+  // ---------- Datos del cliente (llegan del servidor al conectarse) ----------
+  let cliente = null, versionServidor = null;
+  function aplicarCliente(c) {
+    if (!c) return;
+    cliente = c;
+    for (const [k, v] of Object.entries(c.colores ?? {})) document.documentElement.style.setProperty('--' + k, v);
+    $('#marca .nombre').textContent = c.marca ?? '';
+    $('#reemplazo .cara').textContent = (c.nombreAvatar ?? '?').slice(0, 1).toUpperCase();
+    rotarCta(true);
+    cargarVideos(c.videos ?? {});
+  }
+
+  // ---------- Avatar en video: escuchando / hablando / celebrando / saludando ----------
+  const [vidA, vidB] = document.querySelectorAll('#avatar video');
+  let videos = {}, estadoActual = null, visible = vidA, finEstado = null;
+  function cargarVideos(v) {
+    videos = {};
+    for (const [estado, archivo] of Object.entries(v)) if (archivo) videos[estado] = '/cliente/' + archivo;
+    estadoActual = null;
+    ponerEstado('escuchando');
+  }
+  function ponerEstado(estado) {
+    const src = videos[estado] ?? videos.escuchando;
+    if (!src) { escena.classList.add('sin-video'); return; }
+    if (estado === estadoActual) return;
+    estadoActual = estado;
+    const otro = visible === vidA ? vidB : vidA;
+    otro.onerror = () => { if (estado === 'escuchando') escena.classList.add('sin-video'); else ponerEstado('escuchando'); };
+    otro.oncanplay = () => {
+      otro.oncanplay = null;
+      otro.play().catch(() => {});
+      otro.classList.add('activo'); visible.classList.remove('activo');
+      const anterior = visible; visible = otro;
+      setTimeout(() => anterior.pause(), 400);
+      escena.classList.remove('sin-video');
+    };
+    otro.src = src; otro.currentTime = 0; otro.load();
+  }
+  // Un estado de pocos segundos (celebrar, saludar) y luego vuelve a escuchar o hablar
+  function estadoBreve(estado, ms) {
+    ponerEstado(estado);
+    clearTimeout(finEstado);
+    finEstado = setTimeout(() => ponerEstado(escena.classList.contains('hablando') ? 'hablando' : 'escuchando'), ms);
+  }
+
+  // ---------- Llamados a la acción que rotan ----------
+  let ctaI = 0, ctaTimer = null;
+  function rotarCta(inicio = false) {
+    const lista = cliente?.llamadosAccion ?? [];
+    const el = $('#cta');
+    if (!lista.length) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    const poner = () => { el.textContent = lista[ctaI++ % lista.length]; el.classList.remove('cambiando'); };
+    if (inicio) poner(); else { el.classList.add('cambiando'); setTimeout(poner, 400); }
+    clearTimeout(ctaTimer); ctaTimer = setTimeout(() => rotarCta(), 8000);
+  }
+
+  // ---------- Avisos, "leyendo" y ranking ----------
+  let timerAviso = null, timerLeyendo = null, timerRanking = null;
+  function mostrarAviso(texto, ms = 3500) {
+    const el = $('#aviso'); el.textContent = texto; el.classList.add('visible');
+    clearTimeout(timerAviso); timerAviso = setTimeout(() => el.classList.remove('visible'), ms);
+  }
+  function mostrarLeyendo(usuario) {
+    const b = document.createElement('b'); b.textContent = '@' + usuario;
+    const puntos = document.createElement('span'); puntos.className = 'puntos';
+    puntos.append(...['.', '.', '.'].map((p) => { const s = document.createElement('span'); s.textContent = p; return s; }));
+    $('#leyendo').replaceChildren(`💬 ${cliente?.nombreAvatar ?? 'Te'} está leyendo a `, b, puntos);
+    $('#leyendo').classList.add('visible');
+    clearTimeout(timerLeyendo); timerLeyendo = setTimeout(ocultarLeyendo, 30000);
+  }
+  function ocultarLeyendo() { clearTimeout(timerLeyendo); $('#leyendo').classList.remove('visible'); }
+  let rankingTop = [];
+  function pintarRanking(t) {
+    rankingTop = t ?? [];
+    $('#ranking ol').replaceChildren(...rankingTop.map((r, i) => {
+      const li = document.createElement('li');
+      const n = document.createElement('span'); n.textContent = `${['🥇', '🥈', '🥉'][i] ?? (i + 1) + '.'} ${r.usuario}`;
+      const p = document.createElement('b'); p.textContent = `${r.puntos} pts`;
+      li.append(n, p); return li;
+    }));
+  }
+  function mostrarRanking(ms = 12000) {
+    if (!rankingTop.length) return;
+    $('#ranking').classList.add('visible');
+    clearTimeout(timerRanking); timerRanking = setTimeout(() => $('#ranking').classList.remove('visible'), ms);
+  }
+
+  // ---------- Sonido ----------
+  const enOBS = !!window.obsstudio;
+  let audioPermitido = enOBS || new URLSearchParams(location.search).has('autoplay') || location.pathname.startsWith('/en-vivo');
+  let ctx;
+  if (!audioPermitido) { try { ctx = new AudioContext(); audioPermitido = ctx.state === 'running'; } catch {} }
+  if (!audioPermitido) {
+    $('#activar').classList.add('visible');
+    $('#activar').onclick = () => { audioPermitido = true; $('#activar').classList.remove('visible'); try { ctx?.resume(); } catch {} };
+  }
+  function ding() { // campanita suave para regalos
+    try {
+      ctx ??= new AudioContext(); if (ctx.state === 'suspended') ctx.resume();
+      const t = ctx.currentTime;
+      [[880, 0], [1320, .12]].forEach(([f, d]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.18, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .6);
+        o.connect(g).connect(ctx.destination); o.start(t + d); o.stop(t + d + .65);
+      });
+    } catch {}
+  }
+
+  // ---------- Hablar: subtítulo + audio + video "hablando" ----------
+  let fraseActual = null, audioActual = null, vozActual = null, seguroVoz = null, timerSub = null;
+  function terminar(id, sono = true) {
+    if (id !== fraseActual) return;
+    fraseActual = null;
+    clearTimeout(seguroVoz);
+    escena.classList.remove('hablando');
+    if (estadoActual === 'hablando') ponerEstado('escuchando');
+    clearTimeout(timerSub); timerSub = setTimeout(() => $('#subtitulo').classList.remove('visible'), 2500);
+    if (sono && ws?.readyState === 1) ws.send(JSON.stringify({ tipo: 'fin', id })); // solo si de verdad sonó aquí
+  }
+  function callarAnterior() {
+    if (audioActual) { audioActual.onended = audioActual.onerror = null; audioActual.pause(); audioActual = null; }
+    if (vozActual) { vozActual.onend = vozActual.onerror = null; vozActual = null; speechSynthesis.cancel(); }
+  }
+  function hablar(m) {
+    ocultarLeyendo();
+    const quien = $('#subtitulo .quien');
+    if (m.entrada) {
+      quien.textContent = '@' + m.usuario + ' ';
+      const s = document.createElement('span'); s.textContent = 'pregunta: ' + m.entrada; quien.append(s);
+    } else {
+      quien.textContent = { regalo: `🎁 Regalo de @${m.usuario}`, agradecimientos: '🙌 ¡Gracias!', seguir: `⭐ Nuevo seguidor: @${m.usuario}`, unirse: `👋 Bienvenida: @${m.usuario}`,
+        compartio: `📢 Compartió: @${m.usuario}`, ranking: '🏆 Más participativos', meta: '🎉 ¡Meta cumplida!' }[m.evento] ?? `${cliente?.nombreAvatar ?? ''} · ${cliente?.rol ?? ''}`;
+    }
+    $('#subtitulo .texto').textContent = m.respuesta ?? '';
+    clearTimeout(timerSub); $('#subtitulo').classList.add('visible');
+    if (m.evento === 'regalo' || m.evento === 'agradecimientos') { mostrarAviso(`🎁 ¡Gracias, ${m.usuario}!`); ding(); }
+    if (m.evento === 'ranking') mostrarRanking(15000);
+
+    escena.classList.add('hablando');
+    if (['regalo', 'agradecimientos', 'meta'].includes(m.evento)) estadoBreve('celebrando', 3500);
+    else if (m.evento === 'unirse' && videos.saludando) estadoBreve('saludando', 2500);
+    else ponerEstado('hablando');
+
+    callarAnterior();
+    const id = m.id ?? String(Date.now());
+    fraseActual = id;
+    const texto = String(m.respuesta ?? '');
+    clearTimeout(seguroVoz);
+    seguroVoz = setTimeout(() => terminar(id, false), Math.min(30000, 4000 + texto.length * 110));
+    if (m.audio && audioPermitido) {
+      const a = new Audio(`data:${m.audio.startsWith('UklGR') ? 'audio/wav' : 'audio/mpeg'};base64,${m.audio}`);
+      audioActual = a;
+      a.onended = () => terminar(id, true);
+      a.onerror = () => terminar(id, false);
+      a.play().catch(() => terminar(id, false));
+    } else if (audioPermitido && 'speechSynthesis' in window) {
+      const u = new SpeechSynthesisUtterance(texto);
+      vozActual = u; u.lang = 'es-419'; u.rate = 1.05;
+      u.onend = () => terminar(id, true);
+      u.onerror = (e) => { if (e.error !== 'interrupted' && e.error !== 'canceled') terminar(id, false); };
+      speechSynthesis.speak(u);
+    } else {
+      setTimeout(() => terminar(id, false), 2500 + texto.length * 60);
+    }
+  }
+  function reconocer(m) {
+    const varios = (m.cantidad ?? 1) > 1;
+    if (m.evento === 'seguir') mostrarAviso(varios ? '⭐ ¡Gracias por seguirnos!' : `⭐ ¡Gracias por seguirnos, ${m.usuario}!`);
+    else if (m.evento === 'compartio') mostrarAviso(`📢 ¡Gracias por compartir${varios ? '' : ', ' + m.usuario}!`);
+    else if (m.evento === 'unirse') mostrarAviso(varios ? '👋 ¡Bienvenidos!' : `👋 ¡Bienvenida/o, ${m.usuario}!`);
+  }
+
+  // ---------- Conexión con el servidor ----------
+  let ws;
+  function conectar() {
+    ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+    ws.onmessage = (e) => {
+      let m; try { m = JSON.parse(e.data); } catch { return; }
+      try {
+        if (m.tipo === 'escena') {
+          if (versionServidor && m.version && m.version !== versionServidor) return location.reload(); // se reinició: toma los cambios
+          versionServidor = m.version;
+          aplicarCliente(m.cliente);
+        }
+        if (m.tipo === 'hablar') hablar(m);
+        if (m.tipo === 'leyendo') mostrarLeyendo(m.usuario);
+        if (m.tipo === 'leyendo-fin') ocultarLeyendo();
+        if (m.tipo === 'reconocer') reconocer(m);
+        if (m.tipo === 'ranking') pintarRanking(m.top);
+        if (m.tipo === 'mostrar-ranking') mostrarRanking();
+        if (m.tipo === 'contador' && !m.inicial) estadoBreve('celebrando', 2500);
+      } catch (err) { console.error('[avatar] Error con el mensaje', m?.tipo, err); }
+    };
+    ws.onclose = () => setTimeout(conectar, 2000);
+    ws.onerror = () => {};
+  }
+  conectar();
+</script>
+</body>
+</html>

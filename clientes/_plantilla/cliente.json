@@ -1,0 +1,31 @@
+{
+  "id": "_plantilla",
+  "nombreAvatar": "[Nombre del avatar]",
+  "rol": "[asesora / asesor / vendedora...]",
+  "marca": "[Marca del cliente]",
+  "eslogan": "[Qué ofrece, en una línea]",
+  "contacto": "Escríbenos por mensaje directo de esta cuenta",
+  "colores": {
+    "principal": "#1877F2",
+    "acento": "#FFD84D",
+    "fondo": "#0B1220",
+    "texto": "#FFFFFF"
+  },
+  "llamadosAccion": [
+    "[Frase que invita a comentar]",
+    "[Cómo contratar: mensaje directo]"
+  ],
+  "consejos": [
+    "[Consejo útil 1 sobre su tema]",
+    "[Consejo útil 2]"
+  ],
+  "preguntasAlPublico": [
+    "[Pregunta fácil para que comenten]"
+  ],
+  "videos": {
+    "escuchando": "videos/escuchando.mp4",
+    "hablando": "videos/hablando.mp4",
+    "celebrando": "videos/celebrando.mp4",
+    "saludando": "videos/saludando.mp4"
+  }
+}

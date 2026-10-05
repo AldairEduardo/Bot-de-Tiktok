@@ -1,0 +1,38 @@
+{
+  "id": "paginas",
+  "nombreAvatar": "Valeria",
+  "rol": "asesora digital",
+  "marca": "este LIVE",
+  "eslogan": "Asesoría para crear, crecer y monetizar tu página de Facebook",
+  "contacto": "Escríbenos por mensaje directo de esta cuenta",
+  "colores": { "principal": "#1877F2", "acento": "#FFD84D", "fondo": "#0B1220", "texto": "#FFFFFF" },
+  "llamadosAccion": [
+    "Pregúntame lo que quieras sobre tu página de Facebook",
+    "¿Quieres asesoría? Escríbenos por mensaje directo",
+    "Aprende a crecer tu página cumpliendo las normas de Meta",
+    "Comenta tu duda y te respondo al toque"
+  ],
+  "consejos": [
+    "publicar Reels cortos y constantes ayuda más que publicar mucho de golpe",
+    "los primeros 3 segundos de un video deciden si la gente se queda",
+    "responder los comentarios hace que Facebook muestre más tu publicación",
+    "elegir un tema claro para la página atrae seguidores que sí interactúan",
+    "la monetización de Meta exige contenido original: copiar videos ajenos te puede quitar la monetización",
+    "revisar las estadísticas de la página te dice a qué hora publicar",
+    "un buen nombre y una buena foto de perfil hacen que te sigan más",
+    "las páginas que cumplen las normas de Meta son las que duran y se pueden monetizar"
+  ],
+  "preguntasAlPublico": [
+    "¿ya tienes una página de Facebook o estás por crear una?",
+    "¿de qué tema te gustaría que fuera tu página?",
+    "¿qué es lo que más te cuesta: conseguir seguidores o que comenten?",
+    "¿desde qué país nos ves?",
+    "¿ya sabías que Facebook paga por contenido original?"
+  ],
+  "videos": {
+    "escuchando": "videos/escuchando.mp4",
+    "hablando": "videos/hablando.mp4",
+    "celebrando": "videos/celebrando.mp4",
+    "saludando": "videos/saludando.mp4"
+  }
+}

@@ -1,0 +1,27 @@
+BOT DE VOZ PARA TU TIKTOK LIVE
+==============================
+Lee en voz alta las respuestas a las preguntas que el público escribe en tu LIVE
+(precio, seguidores, garantía, asesoría...). Solo responde preguntas: no saluda ni habla solo.
+
+PRIMERA VEZ
+1. Instala Node.js (versión LTS) desde https://nodejs.org
+2. Abre el archivo ".env" con el Bloc de notas y completa:
+   - TIKTOK_USUARIO: tu usuario de TikTok, sin la @
+   - OPENROUTER_API_KEY: tu clave de OpenRouter (https://openrouter.ai > Keys). Cada respuesta gasta
+     unos centavos de ese saldo.
+3. Guarda el archivo.
+
+CADA LIVE
+1. Primero prende tu LIVE en TikTok.
+2. Doble clic en "iniciar.bat". Se abre una ventana negra (no la cierres) y una página en el navegador.
+3. En la página, toca "Activar la voz". Déjala abierta (puedes taparla, no la cierres).
+4. En TikTok LIVE Studio, activa el audio del sistema / escritorio para que el público escuche la voz.
+5. Al terminar el LIVE: cierra la ventana negra. Así deja de gastar saldo.
+
+CAMBIAR PRECIOS O RESPUESTAS
+Edita "clientes/paginas/preguntas.md" con el Bloc de notas y vuelve a abrir iniciar.bat.
+El bot responde SOLO con lo que está ahí; lo que no está, lo manda a mensaje directo.
+
+IMPORTANTE
+- En la configuración del LIVE marca "Contenido generado por IA".
+- El bot nunca promete ganancias ni da números de teléfono o links: todo por mensaje directo.
